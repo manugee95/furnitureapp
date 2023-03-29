@@ -8,3 +8,131 @@ requests==2.28.2
 sqlparse==0.4.3
 tzdata==2022.7
 urllib3==1.26.15
+
+Clone project in ubuntu (git bash)
+*********************************
+1. git clone https://github.com/manugee95/furnitureapp.git
+2. cd furnitureapp
+3. pip install -r requirements.txt
+
+install nginx and gunicorn
+**************************
+4. sudo apt install nginx -y
+5. pip install gunicorn
+6. sudo nano /etc/nginx/nginx.conf (set user value to ubuntu)
+7. go to your instance, copy your IP to view the nginx page
+
+
+Install supervisor and configure gunicorn
+*****************************************
+1. sudo apt install supervisor
+2. cd /etc/supervisor/conf.d/
+3. sudo touch gunicorn.conf
+4. sudo nano gunicorn.conf
+
+
+5.
+
+[program:gunicorn]
+
+directory=/home/ubuntu/furnitureapp
+command=/home/ubuntu/venv/bin/gunicorn --workers 3 --bind
+unix:/home/ubuntu/furnitureapp/app.sock furnitureapp.wsgi:application
+autostart=true
+autorestart=true
+stderr_logfile=/var/log/gunicorn/gunicorn.err.log
+stdout_logfile=/var/log/gunicorn/gunicorn.out.log
+
+[group:guni]
+programs:gunicorn 
+
+
+
+
+7. press Ctrl + o,  enter, Ctrl + x to save and return to terminal
+
+
+
+
+Create the logfile and django.conf files
+****************************************
+1. sudo mkdir /var/log/gunicorn
+
+2. sudo supervisorctl reread 
+
+3. sudo supervisorctl update
+
+4. sudo supervisorctl status
+
+5. cd
+
+6. cd /etc/nginx/sites-enabled
+
+7. sudo rm -r default
+
+8. sudo nano /etc/nginx/nginx.conf
+
+9. cd /etc/nginx/sites-available
+
+10. sudo rm -r default
+
+11. sudo touch furnitureapp.conf
+
+12. sudo nano furnitureapp.conf
+
+
+Server, media and static files serving
+***************************************
+
+12.
+
+server{
+        listen 80;
+        server_name 13.49.41.29;
+	client_max_body_size 100M;
+
+        location / {
+               	include proxy_params;
+                proxy_pass http://unix:/home/ubuntu/furnitureapp/app.sock;
+        }
+
+	location /static/ {
+                autoindex on;
+                alias /home/ubuntu/furnitureapp/static/;
+        }
+
+
+ 	location /media/ {
+                autoindex on;
+                alias /home/ubuntu/furnitureapp/media/;
+        }
+
+}
+
+
+13. press Ctrl + o,  enter, Ctrl + x to save and return to terminal
+
+
+
+14. sudo ln furnitureapp.conf /etc/nginx/sites-enabled/
+
+15. sudo nginx -t
+
+16. cd
+
+17. cd furnitureapp/
+
+18. python manage.py collectstatic
+
+19. sudo nginx -t
+
+20. sudo service nginx restart
+
+How to update deployed project on ubuntu cloud server
+"""""""""""""""""""""""""""""""""""""""""""""
+1. ssh -i "furnitureapp.pem" ubuntu@ec2-52-201-248-155.compute-1.amazonaws.com
+2. source venv/bin/activate
+3. cd furnitureapp
+4. git pull
+5. sudo service supervisor restart
+6. sudo service nginx restart
